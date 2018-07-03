@@ -49,8 +49,43 @@ namespace RsaSecureToken.Tests
 
             // step 3: assert, mock object 是否有正確互動
             //log.Received(1).Save("account:Joey try to login failed"); //Received(1) 可以簡化成 Received()
+            var profile = Substitute.For<IProfile>();
+            profile.GetPassword("Joey").Returns("91");
+            var token = Substitute.For<IToken>();
+            token.GetRandom("Joey").Returns("abc");
+            var mockLog = Substitute.For<ILog>();
+            var authenticationService = new AuthenticationService(profile, token, mockLog);
+            authenticationService.IsValid("Joey", "wrong passcode");
+            //用完整的字串會造成測試的不穩定
+            //mockLog.Received(1).Save("account:Joey try to login failed");
+            //部份字串比對
+            //mockLog.Received(1).Save(Arg.Is<string>(s => s.Contains("Joey") && s.Contains("login failed")));
+            //只驗證有呼叫log，不管log的內容
+            mockLog.ReceivedWithAnyArgs(1).Save("");
+            //Assert.Inconclusive();
+        }
 
-            Assert.Inconclusive();
-        }        
+        [TestMethod]
+        public void is_valid_should_not_log()
+        {
+            //arrange
+            IProfile stubProfile = Substitute.For<IProfile>();
+            stubProfile.GetPassword("Joey").Returns("91");
+
+            IToken stubToken = Substitute.For<IToken>();
+            stubToken.GetRandom("Joey").Returns("abc");
+
+            ILog mockLog = Substitute.For<ILog>();
+            AuthenticationService target = new AuthenticationService(stubProfile, stubToken, mockLog);
+            string account = "Joey";
+            string password = "91abc";
+
+            //act
+            target.IsValid(account, password);
+            //asert
+            mockLog.DidNotReceiveWithAnyArgs().Save("");
+            //mockLog.Received(1).Save(Arg.Is<string>(m => m.Contains("Joey") && m.Contains("login failed")));
+            //mockLog.Received(1).Save("account:Joey try to login failed");
+        }
     }
 }
